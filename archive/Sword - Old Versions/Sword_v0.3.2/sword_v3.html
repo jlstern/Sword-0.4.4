@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Sword (version 2)</title>
+	<link rel="stylesheet" type="text/css" href="sword_v3.css">
+</head>
+<body>
+	<!-- Battlefield -->
+	<div id="upperPanel">
+			<!-- <div id="background"></div> -->
+			<img id="backgroundSource" class="source" src="images/brickwall_stock.jpg">
+			<canvas id="background" width="800px" height="400px"></canvas>
+		<div class="statBox">
+			<div class="statDisplay">
+				<p><span class="heroName"></span></p>
+				<p>Level: <span class="level"></span></p>
+				<p>HP: <span class="hpCurrent"></span>/<span class="hpTotal"></span></p>
+				<p>Magic: <span class="mpCurrent"></span>/<span class="mpTotal"></span></p>
+			</div>
+			<div class="statDisplay"></div>
+			<div class="statDisplay"></div>
+			<div class="statDisplay"></div>
+		</div>
+		<div class="popBox">
+			<p>popBox</p>
+		</div>
+		<div class="charBox">
+		<!-- Character canvases -->
+			<canvas id="heroCanvas" class="charCanvas heroImage" height="200px" width="800px"></canvas>
+			<canvas class="enemyCanvas charCanvas" height="200px" width="800px"></canvas>
+			<canvas class="enemyCanvas charCanvas" height="200px" width="800px"></canvas>
+			<canvas class="enemyCanvas charCanvas" height="200px" width="800px"></canvas>
+			<canvas class="enemyCanvas charCanvas" height="200px" width="800px"></canvas>
+		<!-- Hitboxes -->
+			<div id="enemy0" class="enemyTarget"></div>
+			<div id="enemy1" class="enemyTarget"></div>
+			<div id="enemy2" class="enemyTarget"></div>
+			<div id="enemy3" class="enemyTarget"></div>
+
+		</div>
+		<div class="arrBox">
+			<p>arrBox</p>
+
+		</div>
+		<div class="insBox">
+			<p>insBox</p>
+
+		</div>
+	</div>
+	<!-- Lower section -->
+	<div id="lowerPanel">
+		<p>Weapon Defense: <span class="wepDef"></span></p>
+		<p>Magic Defense: <span class="magDef"></span></p>
+		<p>Speed: <span class="speed"></span></p>
+		<p>Exp to next level: <span class="expToLvl"></span></p>
+		<button id="buttonSlice">Slice</button>
+		<button id="buttonFireball">Fireball</button>
+		<button id="buttonHeal">Heal</button>
+	</div>
+
+
+
+	<!-- Stat display -->
+	<div id="oldDisplay">
+		<div id="hero0" class="displayBlock">
+			<p>Hero0 Name: <span class="heroName"></span></p>
+			<p>Hit Points: <span class="hpCurrent"></span>/<span class="hpTotal"></span></p>
+			<p>Magic: <span class="mpCurrent"></span>/<span class="mpTotal"></span></p>
+			<p>Speed: <span class="speed"></span></p>
+			<p>Weapon Defense: <span class="wepDef"></span></p>
+			<p>Magic Defense: <span class="magDef"></span></p>
+			<p>Status: <span class="status"></span></p>
+			<p>Level: <span class="level"></span></p>
+			<p>Exp to next level: <span class="expToLvl"></span></p>
+		</div>
+		<div class="enemyTarget displayBlock">
+			<p>Enemy0 Name: <span class="enemyName"></span></p>
+			<p>Hit Points: <span class="enemyHPCurrent"></span>/<span class="enemyHPTotal"></span></p>
+			<p>Speed: <span class="enemySpeed"></span></p>
+			<p>Weapon Defense: <span class="enemyWepDef"></span></p>
+			<p>Magic Defense: <span class="enemyMagDef"></span></p>
+			<p>Status: <span class="enemyStatus"></span></p>
+		</div>
+		<div class="enemyTarget displayBlock">
+			<p>Enemy1 Name: <span class="enemyName"></span></p>
+			<p>Hit Points: <span class="enemyHPCurrent"></span>/<span class="enemyHPTotal"></span></p>
+			<p>Speed: <span class="enemySpeed"></span></p>
+			<p>Weapon Defense: <span class="enemyWepDef"></span></p>
+			<p>Magic Defense: <span class="enemyMagDef"></span></p>
+			<p>Status: <span class="enemyStatus"></span></p>
+		</div>
+		<div class="enemyTarget displayBlock">
+			<p>Enemy2 Name: <span class="enemyName"></span></p>
+			<p>Hit Points: <span class="enemyHPCurrent"></span>/<span class="enemyHPTotal"></span></p>
+			<p>Speed: <span class="enemySpeed"></span></p>
+			<p>Weapon Defense: <span class="enemyWepDef"></span></p>
+			<p>Magic Defense: <span class="enemyMagDef"></span></p>
+			<p>Status: <span class="enemyStatus"></span></p>
+		</div>
+		<div class="enemyTarget displayBlock">
+			<p>Enemy3 Name: <span class="enemyName"></span></p>
+			<p>Hit Points: <span class="enemyHPCurrent"></span>/<span class="enemyHPTotal"></span></p>
+			<p>Speed: <span class="enemySpeed"></span></p>
+			<p>Weapon Defense: <span class="enemyWepDef"></span></p>
+			<p>Magic Defense: <span class="enemyMagDef"></span></p>
+			<p>Status: <span class="enemyStatus"></span></p>
+		</div>
+		<div class="clear"></div>
+	</div>
+
+
+
+	<script type="text/javascript" src="sword_v3.js"></script>
+</body>
+</html>
