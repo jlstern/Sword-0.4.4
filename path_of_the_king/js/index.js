@@ -1,48 +1,129 @@
-var map = 
-[[ // room 0
-	[0, 0, 1, 0, 0, 0, 1, 0, 0, "D01A", 1, 0, 0, 0, 0, 1],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
-	[1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-	[1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-	[0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0],
-	[0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0],
-	[1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-	[1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
-	[0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1],
-	[0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
-],
-[ // room 1
-	[0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 1, 0, 0, 2, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 1, 0, 0, 1, 0, 0],
-	["D00A", 0, 0, 1, 1, 0, 0, 0]
-]];
+// Table of Contents
+// 01 - Images and variables
+// 02 - Player object, abilities, and level up
+// 03 - Enemy object and encounter logic
+// 04 - Map and overworld movement
+// 05 - Battle sequence
+// 06 - Load screen and initialize
 
-var room = 0;
+////////////////////////////////////////////////////////
+// 01 - Images and variables
+////////////////////////////////////////////////////////
+// IMAGES
+	// Player
+	var playerIcon = new Image(100, 200);
+	playerIcon.src = "images/arrows.png";
 
+// VARIABLES
+	// Battle
+
+	// Overworld and movement
+	var room = 0;
+	var movementOn = true;
+	var transitionCount = 0;
+	var keyState = {};
+
+	// Set interval variables
+
+////////////////////////////////////////////////////////
+// 02 - Player object, abilities, and level up
+////////////////////////////////////////////////////////
+// Player object
 var player = {
+	name: "King",
+	// stats
+	hpCurr: 20,
+	hpTotal: 20,
+	mpCurr: 10,
+	mpTotal: 10,
+	mpRegen: 1,
+	wepDef: 0,
+	magDef: 0,
+	wepMod: 0,
+	magMod: 0,
+	speed: 0,
+	exp: 0,
+	level: 1,
+	path: 0,
+	// for battle animation
+	frame:
+	batX:
+	batY:
+	// overworld and movement
 	x: 0,
 	y: 0,
 	direction: 0,
 	step: 0,
 	terrain: 0
 }
-	
-movementOn = true;
 
-// images
-var playerIcon = new Image(100, 200);
-playerIcon.src = "images/arrows.png";
+// List of abilities
 
-// animation
-var aniPlayerMove;
-var aniTransition;
-var transitionCount = 0;
+// Level of sequence
 
+
+////////////////////////////////////////////////////////
+// 03 - Enemy object and encounter logic
+////////////////////////////////////////////////////////
+// Enemy object
+var encounterMasterList = [
+	[1, 1, 0, 0],
+	[1, 2, 0, 0],
+	[1, 1, 1, 0]
+]
+
+var enemy = [
+	{
+		index: 0,
+		name: "placeholder",
+		hpCurr: 0,
+		hpTotal: 0,
+		wepDef: 0,
+		magDef: 0,
+		wepMod: 0,
+		magMod: 0,
+		speed: 0,
+		exp: 0,
+		// attack logic
+		attackChance: [],
+		attckFunc: [],
+		// for placement in battle
+		position: 0,
+		frame: 0,
+		batX: 0, 
+		batY: 0,
+	},
+	{
+
+	}
+];
+////////////////////////////////////////////////////////
+// 04 - Map and overworld movement
+////////////////////////////////////////////////////////
+var map = [
+	[ // room 0
+		[0, 0, 1, 0, 0, 0, 1, 0, 0, "D01A", 1, 0, 0, 0, 0, 1],
+		[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+		[1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+		[1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+		[0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+		[0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0],
+		[0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0],
+		[0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0],
+		[1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+		[1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+		[0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1],
+		[0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
+	],
+	[ // room 1
+		[0, 0, 0, 0, 0, 0, 0, 0],
+		[0, 0, 1, 0, 0, 2, 0, 0],
+		[0, 0, 0, 0, 0, 0, 0, 0],
+		[0, 0, 0, 0, 0, 0, 0, 0],
+		[0, 0, 1, 0, 0, 1, 0, 0],
+		["D00A", 0, 0, 1, 1, 0, 0, 0]
+	]
+];
 
 function unitSize(){
 	if(800/map[room][0].length === 600/map[room].length){
@@ -93,7 +174,7 @@ function drawTransition(){
 	var ctx = $("#transition-canvas")[0].getContext("2d");
 	ctx.fillStyle = "cornflowerblue";
 	transitionCount = 0;
-	aniTransition = setInterval(function(){
+	var transition = setInterval(function(){
 		transitionCount++;
 		ctx.beginPath();
 		ctx.moveTo(400, 300);
@@ -101,16 +182,16 @@ function drawTransition(){
 		ctx.lineTo(400, 300);
 		ctx.fill();
 		if(transitionCount === 23){
-			clearInterval(aniTransition)
+			clearInterval(transition)
 			transitionCount = 10;
 			// add scene change here
-			aniTransition = setInterval(function(){
+			transition = setInterval(function(){
 				transitionCount -= 1;
 				ctx.clearRect(0, 0, 800, 600);
 				ctx.globalAlpha = transitionCount/10;
 				ctx.fillRect(0, 0, 800, 600);
 				if(transitionCount <= 0){
-					clearInterval(aniTransition);
+					clearInterval(transition);
 					ctx.globalAlpha = 1;
 					transitionCount = 0;
 					movementOn = true;
@@ -128,7 +209,7 @@ function movePlayer(xAxis, yAxis){
 		{
 			movementOn = false;
 			var moveCount = 0;
-			aniPlayerMove = setInterval(function(){
+			var aniPlayerIcon = setInterval(function(){
 				moveCount += 1;
 				player.x += xAxis/10;
 				player.y += yAxis/10;
@@ -136,7 +217,7 @@ function movePlayer(xAxis, yAxis){
 					player.step = 1;
 				}
 				else if(moveCount === 10){
-					clearInterval(aniPlayerMove);
+					clearInterval(aniPlayerIcon);
 					player.x = Math.round(player.x);
 					player.y = Math.round(player.y);
 					checkPlayerTerrain();
@@ -178,22 +259,22 @@ function openDoor(newRoom, door){
 						var ctx = $("#transition-canvas")[0].getContext("2d");
 						ctx.fillStyle = "gray";
 						transitionCount = 0;
-						aniTransition = setInterval(function(){
+						var transition = setInterval(function(){
 							ctx.fillRect(0, 0, transitionCount*30, 600);
 							transitionCount += 1;
 							if((transitionCount - 1)*30 >= 800){
-								clearInterval(aniTransition);
+								clearInterval(transition);
 								transitionCount = 0;
 								room = newRoom;
 								drawMap();
 								player.x = newCol;
 								player.y = newRow;
 								drawPlayer();
-								aniTransition = setInterval(function(){
+								transition = setInterval(function(){
 									ctx.clearRect(0, 0, transitionCount*30, 600);
 									transitionCount += 1;
 									if((transitionCount - 1)*30 >= 800){
-										clearInterval(aniTransition);
+										clearInterval(transition);
 										transitionCount = 0;
 										movementOn = true;
 									}
@@ -207,11 +288,7 @@ function openDoor(newRoom, door){
 	}
 }
 
-
-// movement keys
-
-var keyState = {};
-
+// Movement keys
 $(window).keydown(function(event){
 	keyState[event.keyCode || e.which] = true;
 });
@@ -242,7 +319,10 @@ function checkKeyPress(){
 	setTimeout(checkKeyPress, 10);
 }
 
-// initialize
+////////////////////////////////////////////////////////
+// 06 - Load screen and initialize
+////////////////////////////////////////////////////////
+// Initialize
 drawMap();
 drawPlayer();
 checkKeyPress();
