@@ -2,8 +2,8 @@
 // 01 - Images and variables
 // 02 - Player object, abilities, and level up
 // 03 - Enemy object and encounter logic
-// 04 - Map and overworld movement
-// 05 - Battle sequence
+// 03 - Battle sequence
+// 05 - Map and overworld movement
 // 06 - Load screen and initialize
 
 ////////////////////////////////////////////////////////
@@ -16,6 +16,9 @@
 
 // VARIABLES
 	// Battle
+	var enemyTeam = [];
+	var turnOrder = [];
+	var currentTurn = 0
 
 	// Overworld and movement
 	var room = 0;
@@ -31,6 +34,7 @@
 // Player object
 var player = {
 	name: "King",
+	type: "player",
 	// stats
 	hpCurr: 20,
 	hpTotal: 20,
@@ -41,14 +45,14 @@ var player = {
 	magDef: 0,
 	wepMod: 0,
 	magMod: 0,
-	speed: 0,
+	speed: 2,
 	exp: 0,
 	level: 1,
 	path: 0,
 	// for battle animation
-	frame:
-	batX:
-	batY:
+	frame: 0,
+	batX: 0,
+	batY: 0,
 	// overworld and movement
 	x: 0,
 	y: 0,
@@ -75,6 +79,7 @@ var encounterMasterList = [
 var enemy = [
 	{
 		index: 0,
+		type: "enemy",
 		name: "placeholder",
 		hpCurr: 0,
 		hpTotal: 0,
@@ -94,16 +99,137 @@ var enemy = [
 		batY: 0,
 	},
 	{
-
+		index: 1,
+		type: "enemy",
+		name: "Goblin",
+		hpCurr: 10,
+		hpTotal: 10,
+		wepDef: 0,
+		magDef: 0,
+		wepMod: 0,
+		magMod: 0,
+		speed: 1,
+		exp: 0,
+		// attack logic
+		attackChance: [],
+		attckFunc: [],
+		// for placement in battle
+		position: 0,
+		frame: 0,
+		batX: 0, 
+		batY: 0,
 	}
 ];
+
 ////////////////////////////////////////////////////////
-// 04 - Map and overworld movement
+// 05 - Battle sequence
+////////////////////////////////////////////////////////
+function beginEncounter(encounterNum){
+	// set up enemy team
+	for(i = 0; i < 4; i++){
+		enemyTeam[i] = Object.assign({}, enemy[encounterMasterList[encounterNum][i]]);
+		enemyTeam[i].position = i;
+	}
+	// set up turn order
+	var turnOrderPrelim = [player]
+	for(i = 0; i < enemyTeam.length; i++){
+		turnOrderPrelim.push(enemyTeam[i])
+	}
+	while(turnOrderPrelim.length > 0){
+		var highest = turnOrderPrelim[0].speed;
+		var highestIndex = 0
+		for(i = 0; i < turnOrderPrelim.length; i++){
+			if(turnOrderPrelim[i].speed > highest){
+				highestIndex = i;
+				highest = turnOrderPrelim[i].speed;
+			}
+		}
+		turnOrder.push(turnOrderPrelim[highestIndex]);
+		turnOrderPrelim.splice(highestIndex, 1);
+	}
+	// set up enemy idle animations
+	// set up player idle animations
+	drawTransition(openBattlefield);
+}
+
+
+
+function beginTurnRotation(){
+	console.log("Begin turn " + currentTurn)
+	// reset current turn to zero
+	if(currentTurn > turnOrder.length){
+		currentTurn = 0;
+	}
+	// check if all enemies dead
+	var enemiesRemaining = 0;
+	for(i = 0; i < enemyTeam.length; i++){
+		if(enemyTeam[i].hpCurr > 0){
+			enemiesRemaining++;
+		}
+	}
+	console.log("Enemies remaining: " + enemiesRemaining);
+	if(enemiesRemaining === 0){
+		return endEncounter();
+	}
+	// return player or enemy turns
+	if(turnOrder[currentTurn].type === "player"){
+		return playerTurn();
+	}
+	if(turnOrder[currentTurn].type === "enemy" && turnOrder[currentTurn].hpCurr > 0){
+		return enemyTurn(turnOrder[currentTurn].position);
+	}
+}
+
+function playerTurn(){
+	console.log("Player turn");
+	// currentTurn++;
+	// beginEncounter();
+}
+
+function enemyTurn(position){
+	console.log("Enemy turn");
+	// currentTurn++;
+	// beginEncounter();
+}
+
+function endEncounter(){
+	openWorldMap()
+}
+
+
+
+
+
+
+
+
+
+
+function openBattlefield(){
+	$("#world-map").addClass("hidden");
+	$("#battlefield").removeClass("hidden");
+	beginTurnRotation();
+}
+
+function openWorldMap(){
+	$("#battlefield").addClass("hidden");
+	$("#world-map").removeClass("hidden");
+	movementOn = true;
+}
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////
+// 05 - Map and overworld movement
 ////////////////////////////////////////////////////////
 var map = [
 	[ // room 0
 		[0, 0, 1, 0, 0, 0, 1, 0, 0, "D01A", 1, 0, 0, 0, 0, 1],
-		[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+		[0, "E00", 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
 		[1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
 		[1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
 		[0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
@@ -148,8 +274,10 @@ function drawMap(){
 				ctx.fillRect(col*unitSize(), row*unitSize(), unitSize(), unitSize());
 			}
 			else if(typeof(map[room][row][col]) === "string"){
-				ctx.fillStyle = "brown";
-				ctx.fillRect(col*unitSize(), row*unitSize(), unitSize(), unitSize());
+				if(map[room][row][col].charAt(0) === "D"){
+					ctx.fillStyle = "brown";
+					ctx.fillRect(col*unitSize(), row*unitSize(), unitSize(), unitSize());
+				}
 			}
 		}
 	}
@@ -159,9 +287,7 @@ function drawPlayer(){
 	var ctx = $("#player-canvas")[0].getContext("2d");
 	ctx.clearRect(0, 0, 800, 600);
 	ctx.fillStyle = "red";
-	// ctx.drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
 	ctx.drawImage(playerIcon, player.step*50, player.direction*50, 50, 50, player.x*unitSize(), player.y*unitSize(), unitSize(), unitSize());
-	// ctx.fillRect(player.x*unitSize(), player.y*unitSize(), unitSize(), unitSize());
 }
 
 function hidePlayer(){
@@ -169,7 +295,7 @@ function hidePlayer(){
 	ctx.clearRect(0, 0, 800, 600);
 }
 
-function drawTransition(){
+function drawTransition(addFunc){
 	movementOn = false;
 	var ctx = $("#transition-canvas")[0].getContext("2d");
 	ctx.fillStyle = "cornflowerblue";
@@ -184,7 +310,7 @@ function drawTransition(){
 		if(transitionCount === 23){
 			clearInterval(transition)
 			transitionCount = 10;
-			// add scene change here
+			addFunc()
 			transition = setInterval(function(){
 				transitionCount -= 1;
 				ctx.clearRect(0, 0, 800, 600);
@@ -233,12 +359,15 @@ function movePlayer(xAxis, yAxis){
 
 function checkPlayerTerrain(){
 	var terrain = map[room][player.y][player.x];
-	if(terrain === 2){
-		drawTransition();
-	}
-	else if(typeof(terrain) === "string"){
+	// if(terrain === 2){
+	// 	drawTransition();
+	// }
+	if(typeof(terrain) === "string"){
 		if(terrain.charAt(0) === "D"){
 			openDoor(Number(terrain.charAt(1) + terrain.charAt(2)), terrain.charAt(3))
+		}
+		if(terrain.charAt(0) === "E"){
+			beginEncounter(Number(terrain.charAt(1) + terrain.charAt(2)));
 		}
 	}
 	else{
@@ -290,7 +419,10 @@ function openDoor(newRoom, door){
 
 // Movement keys
 $(window).keydown(function(event){
-	keyState[event.keyCode || e.which] = true;
+	if([32, 37, 38, 39, 40].indexOf(event.keyCode) > -1) {
+		event.preventDefault();
+	}
+	keyState[event.keyCode || event.which] = true;
 });
 
 $(window).keyup(function(event){
@@ -319,10 +451,38 @@ function checkKeyPress(){
 	setTimeout(checkKeyPress, 10);
 }
 
+// Prevent arrow keys from scrolling down
+// http://stackoverflow.com/questions/8916620/disable-arrow-key-scrolling-in-users-browser
+
+
+
 ////////////////////////////////////////////////////////
 // 06 - Load screen and initialize
 ////////////////////////////////////////////////////////
+function drawLoadScreen(){
+	var ctx = $("#load-canvas")[0].getContext("2d");
+	ctx.fillStyle = "burlyWood";
+	ctx.fillRect(0, 0, 800, 600);
+	ctx.font = "42px Arial";
+	ctx.fillStyle = "black";
+	ctx.textAlign = "center";
+	ctx.fillText("PATH OF THE KING", 400, 200);
+	ctx.font = "24px Arial";
+	ctx.fillText("Click anywhere to begin", 400, 300);
+	$("#load-canvas").on("click", function(){
+		loadGame();
+		ctx.fillText("Loading...", 400, 400);
+		setTimeout(function(){
+			$("#load-canvas").addClass("hidden");
+		}, 100);
+	});
+}
+
+function loadGame(){
+	drawMap();
+	drawPlayer();
+	checkKeyPress();
+}
+
 // Initialize
-drawMap();
-drawPlayer();
-checkKeyPress();
+drawLoadScreen();

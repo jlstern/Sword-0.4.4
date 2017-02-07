@@ -1,17 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>World Map Experiment</title>
-	<link rel="stylesheet" type="text/css" href="css/index.css">
+	<title>Path of the King</title>
+	<link href="https://fonts.googleapis.com/css?family=Cinzel:400,700|Open+Sans+Condensed:300" rel="stylesheet">
 	<script
   src="https://code.jquery.com/jquery-3.1.1.min.js"
   integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
   crossorigin="anonymous"></script>
+  <link rel="stylesheet" type="text/css" href="css/index.css">
 </head>
 <body>
-	<canvas id="map-canvas" width="800" height="600"></canvas>
-	<canvas id="player-canvas" width="800" height="600"></canvas>
-	<canvas id="transition-canvas" width="800" height="600"></canvas>
+	<h1>~ Path of the King ~</h1>
+	<div id="game-screen">
+		<div id="battlefield hidden">
+			<canvas class="enemy-ani-canvas" width="800" height="600"></canvas>
+			<canvas class="enemy-ani-canvas" width="800" height="600"></canvas>
+			<canvas class="enemy-ani-canvas" width="800" height="600"></canvas>
+			<canvas class="enemy-ani-canvas" width="800" height="600"></canvas>
+			<canvas id="player-ani-canvas" width="800" height="600"></canvas>
+			<canvas id="fx-canvas" width="800" height="600"></canvas>
+			<canvas class="enemy-dam-canvas" width="800" height="600"></canvas>
+			<canvas class="enemy-dam-canvas" width="800" height="600"></canvas>
+			<canvas class="enemy-dam-canvas" width="800" height="600"></canvas>
+			<canvas class="enemy-dam-canvas" width="800" height="600"></canvas>
+			<canvas id="player-dam-canvas" width="800" height="600"></canvas>
+		</div>
+		<div id="world-map">
+			<canvas id="map-canvas" width="800" height="600"></canvas>
+			<canvas id="player-canvas" width="800" height="600"></canvas>
+		</div>
+		<canvas id="transition-canvas" width="800" height="600"></canvas>
+		<canvas id="load-canvas" width="800" height="600"></canvas>
+	</div>
+	<div id="descrip-box">
+		<h2>How to play</h2>
+		<p>You have been trapped in a labyrinth by your enemies. It will take everything you have to escape and reclaim your throne!</p>
+		<p>Use the arrow keys or WASD keys to navigate the labyrinth. While exploring the labyrinth, you will be periodically attacked by monsters. Use your mouse to select which ability to use and then click on an enemy to target them. As you progress through battles you will have a chance to level up. Every level will improve your stats and grant you new abilities. Choose wisely. </p>
+		<p>The game ends when you reach the end of the maze and manage to recclaim your throne. Beware, if you fall in combat, you will have to start over at the beginning.</p>
+		<h2>About Path of the King</h2>
+		<p>Path of the King is a turn-based RPG inspired by 90's RPG classics, such as Dragon Warrior, Final Fantasy, and Legend of Zelda.</p>
+		<p>This game was designed and built by Jacob Stern using HTML5, CSS, JavaScript, jQuery, and Google Fonts. All character animations were drawn by Zachary A.L. Stern. This game was made purely for fun and to practice programming with JavaScript.</p>
+	</div>
 	<script type="text/javascript" src="js/index.js"></script>
 </body>
 </html>

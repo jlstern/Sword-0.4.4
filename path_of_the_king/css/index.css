@@ -1,6 +1,40 @@
-canvas {
+body {
+	background-color: lightgray;
+}
+h1 {
+	font-family: 'Cinzel', serif;
+	text-align: center;
+	margin: 5px;
+}
+#game-screen {
+	margin: auto;
+	width: 800px;
+	height: 600px;
+	position: relative;
+	background-color: white;
 	border: 1px solid black;
+}
+canvas {
 	position: absolute;
 	top: 0;
 	left: 0;
+}
+#descrip-box {
+	font-family: 'Open Sans Condensed', sans-serif;
+	width: 650px;
+	background-color: white;
+	border: 1px solid black;
+	margin: 30px auto 30px auto;
+	padding-left: 15px;
+	padding-right: 15px;
+}
+#descrip-box h2 {
+	font-family: 'Cinzel', serif;
+	margin: 20px 0 10px 0;
+}
+#descrip-box p {
+	margin: 10px 0 10px 0;
+}
+.hidden {
+	display: none;
 }
