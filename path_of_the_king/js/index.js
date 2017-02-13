@@ -13,12 +13,47 @@
 	// Player
 	var playerIcon = new Image(100, 200);
 	playerIcon.src = "images/arrows.png";
+	var playerImg = new Image(1600, 1200);
+	playerImg.src = "images/char_strips/king_strip.png";
+
+	// Enemies
+	var placeholderImg = new Image (1000, 600);
+	var goblinImg = new Image(1000, 600);
+	goblinImg.src = "images/char_strips/goblin_strip.png";
+	var birdImg = new Image(1000, 800);
+	birdImg.src = "images/char_strips/bird_strip.png";
+	var vikingImg = new Image(1000, 1000);
+	vikingImg.src = "images/char_strips/viking_strip.png"
+
+	// FX
+	var burstImg = new Image(1200, 200);
+	burstImg.src = "images/fx/burst_strip.png";
+
+	// Background
+	var hallwayPanel = new Image(150, 400);
+	hallwayPanel.src = "images/background/castlewall.png";
+	var lowerPanel = new Image(3300, 833);
+	lowerPanel.src = "images/background/lower_half.png";
 
 // VARIABLES
 	// Battle
 	var enemyTeam = [];
 	var turnOrder = [];
-	var currentTurn = 0
+	var currentTurn = 0;
+	var actEnemy = 0;
+	var target = 0;
+	var ability = {
+		dmg: 0,
+		type: "",
+		cost: 0,
+		bonus: 0,
+		fx: 0
+	}
+	displayDmg = 0;
+	var expPool = 0;
+	var enemyDmg = 0;
+	var flinchOK = true; // checks to make sure flinch animation is complete
+	var fxOK = true; // checks to make sure FX animation is complete
 
 	// Overworld and movement
 	var room = 0;
@@ -27,6 +62,10 @@
 	var keyState = {};
 
 	// Set interval variables
+	var animatePlayer
+	var animateEnemy = [,,,];
+	var animateFX
+	var fxFrame = 0;
 
 ////////////////////////////////////////////////////////
 // 02 - Player object, abilities, and level up
@@ -51,8 +90,9 @@ var player = {
 	path: 0,
 	// for battle animation
 	frame: 0,
-	batX: 0,
-	batY: 0,
+	step: 0,
+	dx: 0,
+	dy: 0,
 	// overworld and movement
 	x: 0,
 	y: 0,
@@ -71,7 +111,7 @@ var player = {
 ////////////////////////////////////////////////////////
 // Enemy object
 var encounterMasterList = [
-	[1, 1, 0, 0],
+	[1, 2, 3, 0],
 	[1, 2, 0, 0],
 	[1, 1, 1, 0]
 ]
@@ -79,8 +119,9 @@ var encounterMasterList = [
 var enemy = [
 	{
 		index: 0,
-		type: "enemy",
+		type: "placeholder",
 		name: "placeholder",
+		image: placeholderImg,
 		hpCurr: 0,
 		hpTotal: 0,
 		wepDef: 0,
@@ -91,17 +132,18 @@ var enemy = [
 		exp: 0,
 		// attack logic
 		attackChance: [],
-		attckFunc: [],
+		attackFunc: [],
 		// for placement in battle
 		position: 0,
 		frame: 0,
-		batX: 0, 
-		batY: 0,
+		dx: 0, 
+		dy: 0,
 	},
 	{
 		index: 1,
 		type: "enemy",
 		name: "Goblin",
+		image: goblinImg,
 		hpCurr: 10,
 		hpTotal: 10,
 		wepDef: 0,
@@ -109,21 +151,70 @@ var enemy = [
 		wepMod: 0,
 		magMod: 0,
 		speed: 1,
-		exp: 0,
+		exp: 1,
 		// attack logic
-		attackChance: [],
-		attckFunc: [],
+		attackChance: [35, 65],
+		attackFunc: [enemySqueal, enemyAxeSwing],
 		// for placement in battle
 		position: 0,
 		frame: 0,
-		batX: 0, 
-		batY: 0,
+		dx: 0, 
+		dy: 0,
+	},
+	{
+		index: 2,
+		type: "enemy",
+		name: "Bird",
+		image: birdImg,
+		hpCurr: 5,
+		hpTotal: 5,
+		wepDef: 0,
+		magDef: 40,
+		wepMod: 0,
+		magMod: 0,
+		speed: 1,
+		exp: 2,
+		// attack logic
+		attackChance: [100],
+		attackFunc: [enemyPeck],
+		// for placement in battle
+		position: 0,
+		frame: 0,
+		dx: 0, 
+		dy: 0,
+	},
+	{
+		index: 3,
+		type: "enemy",
+		name: "Viking",
+		image: vikingImg,
+		hpCurr: 15,
+		hpTotal: 15,
+		wepDef: 50,
+		magDef: -20,
+		wepMod: 0,
+		magMod: 0,
+		speed: 0,
+		exp: 3,
+		// attack logic
+		attackChance: [30, 70],
+		attackFunc: [enemyDefend, enemySwordSwing],
+		// for placement in battle
+		position: 0,
+		frame: 0,
+		dx: 0, 
+		dy: 0,
 	}
 ];
 
 ////////////////////////////////////////////////////////
 // 05 - Battle sequence
 ////////////////////////////////////////////////////////
+function openBattlefield(){
+	$("#world-map").addClass("hidden");
+	$("#battlefield").removeClass("hidden");
+}
+
 function beginEncounter(encounterNum){
 	// set up enemy team
 	for(i = 0; i < 4; i++){
@@ -147,68 +238,593 @@ function beginEncounter(encounterNum){
 		turnOrder.push(turnOrderPrelim[highestIndex]);
 		turnOrderPrelim.splice(highestIndex, 1);
 	}
-	// set up enemy idle animations
-	// set up player idle animations
-	drawTransition(openBattlefield);
+	refreshHeroDisplay();
+	drawAllIdleEnemies();
+	drawIdlePlayerSheathed();
+	drawTransition(openBattlefield, playerDrawSword);
 }
 
+function drawIdlePlayerSheathed(){
+	clearInterval(animatePlayer);
+	var ctx = $("#player-ani-canvas")[0].getContext("2d");
+	player.frame = 0
+	animatePlayer = setInterval(function(){
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(playerImg, player.frame*200, 0, 200, 200, player.dx, 150, 200, 200);
+		player.frame++;
+		if(player.frame > 1){
+			player.frame = 0;
+		}
+	}, 400);
+}
 
+function playerDrawSword(){
+	$("#battle-header").animate({
+		left: "220px",
+		opacity: "1",
+	});
+	clearInterval(animatePlayer);
+	var ctx = $("#player-ani-canvas")[0].getContext("2d");
+	player.frame = 0
+	animatePlayer = setInterval(function(){
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(playerImg, player.frame*200, 800, 200, 200, player.dx, 150, 200, 200);
+		player.frame++;
+		if(player.frame >= 8){
+			setTimeout(function(){
+				$("#battle-header").animate({
+					left: "440px",
+					opacity: "0",
+				}).animate({
+					left: "0"
+				});
+			}, 1000);
+			drawIdlePlayer();
+			beginTurnRotation();
+		}
+	}, 100);
+}
 
-function beginTurnRotation(){
-	console.log("Begin turn " + currentTurn)
-	// reset current turn to zero
-	if(currentTurn > turnOrder.length){
-		currentTurn = 0;
-	}
-	// check if all enemies dead
-	var enemiesRemaining = 0;
+function playerSheathSword(){
+	clearInterval(animatePlayer);
+	var ctx = $("#player-ani-canvas")[0].getContext("2d");
+	player.frame = 0
+	animatePlayer = setInterval(function(){
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(playerImg, player.frame*200, 1000, 200, 200, player.dx, 150, 200, 200);
+		player.frame++;
+		if(player.frame >= 4){
+			drawIdlePlayerSheathed();
+		}
+	}, 200);
+}
+
+function drawIdlePlayer(){
+	clearInterval(animatePlayer);
+	var ctx = $("#player-ani-canvas")[0].getContext("2d");
+	player.frame = 0
+	animatePlayer = setInterval(function(){
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(playerImg, player.frame*200, 200, 200, 200, player.dx, 150, 200, 200);
+		player.frame++;
+		if(player.frame > 1){
+			player.frame = 0;
+		}
+	}, 400);
+}
+
+function drawAllIdleEnemies(){
 	for(i = 0; i < enemyTeam.length; i++){
-		if(enemyTeam[i].hpCurr > 0){
-			enemiesRemaining++;
+		if(enemyTeam[i].index > 0){
+			drawIdleEnemy(i);
 		}
 	}
-	console.log("Enemies remaining: " + enemiesRemaining);
-	if(enemiesRemaining === 0){
-		return endEncounter();
-	}
-	// return player or enemy turns
-	if(turnOrder[currentTurn].type === "player"){
-		return playerTurn();
-	}
-	if(turnOrder[currentTurn].type === "enemy" && turnOrder[currentTurn].hpCurr > 0){
-		return enemyTurn(turnOrder[currentTurn].position);
-	}
+}
+
+function drawIdleEnemy(index){
+	clearInterval(animateEnemy[index]);
+	var ctx = $(".enemy-ani-canvas")[index].getContext("2d");
+	enemyTeam[index].frame = Math.floor(Math.random()*4);
+	animateEnemy[index] = setInterval(function(){
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(enemyTeam[index].image, enemyTeam[index].frame*200, 0, 200, 200, 205+index*130, 150, 200, 200);
+		enemyTeam[index].frame++;
+		if(enemyTeam[index].frame > 3){
+			enemyTeam[index].frame = 0;
+		}
+	}, 200);
+}
+
+function beginTurnRotation(){
+	setTimeout(function(){
+		// makes sure all aniamtions are complete
+		if(flinchOK === false || fxOK === false){
+			return beginTurnRotation();
+		}
+		console.log("Begin turn " + currentTurn)
+		// reset current turn to zero
+		if(currentTurn >= turnOrder.length){
+			currentTurn = 0;
+		}
+		// check if all enemies dead
+		var enemiesRemaining = 0;
+		for(i = 0; i < enemyTeam.length; i++){
+			if(enemyTeam[i].hpCurr > 0){
+				enemiesRemaining++;
+			}
+		}
+		console.log("Enemies remaining: " + enemiesRemaining);
+		if(enemiesRemaining === 0){
+			return endEncounter();
+		}
+		// return player or enemy turns
+		else if(turnOrder[currentTurn].type === "player"){
+			return playerTurn();
+		}
+		else if(turnOrder[currentTurn].type === "enemy" && turnOrder[currentTurn].hpCurr > 0){
+			return enemyTurn(turnOrder[currentTurn].position);
+		}
+		else{
+			currentTurn++;
+			beginTurnRotation();
+		}
+	}, 100);
 }
 
 function playerTurn(){
 	console.log("Player turn");
-	// currentTurn++;
-	// beginEncounter();
+	player.mpCurr += player.mpRegen;
+	if(player.mpCurr > player.mpTotal){
+		player.mpCurr = player.mpTotal
+	}
+	refreshHeroDisplay();
+	turnOnAbilityButtons();
 }
 
-function enemyTurn(position){
+function turnOnAbilityButtons(){
+	$("#ability-slice").on("click", playerSlice);
+	$("#ability-burst").on("click", playerBurst);
+	$("#ability-heal").on("click", playerHeal);
+			// set variables for damage
+		// set variables for animation
+		// turn on targetting reticules
+}
+
+function turnOffAbilityButtons(){
+	$("#ability-slice").off("click", playerSlice);
+	$("#ability-burst").off("click", playerBurst);
+	$("#ability-heal").off("click", playerHeal);
+};
+
+// LIST OF PLAYER ABILITY FUNCTIONS
+function playerSlice(){
+	console.log("Slice selected")
+	ability.dmg = 5;
+	ability.type = "weapon";
+	ability.cost = 0;
+	ability.bonus = nullFunc;
+	ability.fx = nullFunc;
+	$("#target-box").removeClass("hidden");
+}
+
+function playerBurst(){
+	console.log("Burst selected");
+	ability.dmg = 8;
+	ability.type = "magic";
+	ability.cost = 4;
+	ability.bonus = nullFunc;
+	ability.fx = burstFX
+	$("#target-box").removeClass("hidden");
+}
+
+function playerHeal(){};
+
+// TARGETTING MECHANICS
+for(i = 0; i < 4; i++){
+	$("#target" + i).on("click", function(){
+		if(enemyTeam[$(this).index()].hpCurr > 0){
+			turnOffAbilityButtons();
+			$("#target-box").addClass("hidden");
+			target = $(this).index();
+			calculateDamage();
+			if(ability.type === "weapon"){
+				playerUseSword(ability.fx);
+			}
+			else if(ability.type === "magic"){
+				playerCastSpell(ability.fx);
+			}
+		}
+	});
+}
+
+// CALCULATE DAMAGE
+function calculateDamage(){
+	player.mpCurr -= ability.cost;
+	if(ability.type === "weapon"){
+		displayDmg = ability.dmg-Math.ceil(ability.dmg*(enemyTeam[target].wepDef/100))
+	}
+	else if(ability.type === "magic"){
+		displayDmg = ability.dmg-Math.ceil(ability.dmg*(enemyTeam[target].magDef/100));
+	}
+	enemyTeam[target].hpCurr -= displayDmg;
+	if(enemyTeam[target].hpCurr <= 0){
+		expPool += enemyTeam[target].exp;
+	}
+}
+
+// REFRESH PLAYER DISPLAY
+function refreshHeroDisplay(){
+	$("#current-hp").text(player.hpCurr);
+	$("#total-hp").text(player.hpTotal);
+	$("#current-mp").text(player.mpCurr);
+	$("#total-mp").text(player.mpTotal);
+	$("#hp-bar").animate({
+		width: (player.hpCurr/player.hpTotal)*100+"px"
+	}, function(){
+		if(player.hpCurr/player.hpTotal < 0.25){
+			$("#hp-bar").css("background-color", "red");
+		}
+		else if(player.hpCurr/player.hpTotal < 0.5){
+			$("#hp-bar").css("background-color", "yellow");
+		}
+	});
+	$("#mp-bar").animate({
+		width: (player.mpCurr/player.mpTotal)*100+"px"
+	});
+}
+
+// FLOAT DAMAGE
+function floatPlayerDamage(){
+	$("#player-float").text("-" + displayDmg).
+	css({"opacity": "1", "top": "140px"}).
+	animate({
+		top: "10px",
+		opacity: "0"
+	}, 1200);
+}
+
+function floatEnemyDamage(num){
+	$("#float" + num).text("-" + displayDmg).
+	css({"opacity": "1", "top": "140px"}).
+	animate({
+		top: "10px",
+		opacity: "0"
+	}, 1200);
+}
+
+// VISUAL EFFECTS
+function nullFunc(){}
+
+function burstFX(){
+	var ctx = $("#fx-canvas")[0].getContext("2d");
+	fxFrame = 0;
+	animateFX = setInterval(function(){
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(burstImg, fxFrame*200, 0, 200, 200, 220+target*130, 150, 200, 200);
+		fxFrame++;
+		if(fxFrame > 5){
+			clearInterval(animateFX);
+		}
+	}, 200);
+}
+
+// ATTACK ANIMATIONS
+function playerUseSword(swordFX){
+	clearInterval(animatePlayer);
+	player.frame = 2;
+	player.dx = 0;
+	var ctx = $("#player-ani-canvas")[0].getContext("2d");
+	animatePlayer = setInterval(function(){
+		// walk up
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(playerImg, player.frame*200, 200, 200, 200, player.dx, 150, 200, 200);
+		player.frame++;
+		if(player.frame > 4){
+			player.frame = 2;
+		}
+		player.dx += 65;
+		if(player.dx >= 130+target*130){
+			clearInterval(animatePlayer);
+			player.step = 0;
+			player.frame = 0;
+			animatePlayer = setInterval(function(){
+				// stab and withdraw
+				ctx.clearRect(0, 0, 800, 600);
+				ctx.drawImage(playerImg, player.frame*200, 400, 200, 200, player.dx, 150, 200, 200);
+				if(player.step === 0){
+					player.frame++;
+				}
+				else if(player.step === 1){
+					refreshHeroDisplay();
+					swordFX();
+					enemyFlinch();
+				}
+				else if(player.step > 5 && player.step < 6){
+					player.frame--;
+				}
+				else if(player.step >= 3){
+					clearInterval(animatePlayer)
+					player.frame = 0;
+					animatePlayer = setInterval(function(){
+						// walk away
+						ctx.clearRect(0, 0, 800, 600);
+						ctx.drawImage(playerImg, 400+player.frame*200, 200, 200, 200, player.dx, 150, 200, 200);
+						player.frame++;
+						if(player.frame > 2){
+							player.frame = 0;
+						}
+						if(player.dx < 0){
+							player.dx = 0;
+							clearInterval(animatePlayer);
+							drawIdlePlayer();
+							currentTurn++;
+							beginTurnRotation();
+						}
+						player.dx -= 26;
+					}, 100);
+				}
+				player.step++;
+			}, 175);
+		}
+	}, 150);
+}
+
+function playerCastSpell(spellFX){
+	clearInterval(animatePlayer);
+	player.frame = 0;
+	var ctx = $("#player-ani-canvas")[0].getContext("2d");
+	animatePlayer = setInterval(function(){
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(playerImg, player.frame*200, 600, 200, 200, player.dx, 150, 200, 200);
+		if(player.frame === 4){
+			refreshHeroDisplay();
+			spellFX();
+		}
+		else if(player.frame > 4){
+			enemyFlinch();
+			drawIdlePlayer();
+			currentTurn++;
+			beginTurnRotation();
+		}
+		player.frame++;
+	}, 200);
+}
+
+function enemyFlinch(){
+	flinchOK = false;
+	clearInterval(animateEnemy[target]);
+	var ctx = $(".enemy-ani-canvas")[target].getContext("2d");
+	ctx.clearRect(0, 0, 800, 600);
+	ctx.drawImage(enemyTeam[target].image, 800, 0, 200, 200, 200+target*130, 150, 200, 200);
+	floatEnemyDamage(target);
+	setTimeout(function(){
+		if(enemyTeam[target].hpCurr <= 0){
+			clearInterval(animateEnemy[target]);
+			enemyTeam[target].frame = 10;
+			animateEnemy[target] = setInterval(function(){
+				enemyTeam[target].frame--;
+				ctx.globalAlpha = enemyTeam[target].frame/10;
+				ctx.clearRect(0, 0, 800, 600);
+				ctx.drawImage(enemyTeam[target].image, 800, 0, 200, 200, 200+target*130, 150, 200, 200);
+				if(enemyTeam[target].frame <= 0){
+					clearInterval(animateEnemy[target]);
+					ctx.globalAlpha = 1;
+					flinchOK = true;
+				}
+			}, 60);
+		}
+		else{
+			drawIdleEnemy(target);
+			flinchOK = true;
+		}
+	}, 350);
+}
+
+// ENEMY TURN MECHANICS
+function enemyTurn(num){
 	console.log("Enemy turn");
-	// currentTurn++;
-	// beginEncounter();
+	actEnemy = num;
+	var randomNum = Math.floor(Math.random()*101);
+	if(randomNum === 0){
+		return enemyTurn(num);
+	}
+	for(i = 0; i < enemyTeam[num].attackChance.length; i++){
+		var baseChance = 0;
+		for(a = 0; a < enemyTeam[num].attackChance.length; a++){
+			if(a < i){
+				baseChance += enemyTeam[num].attackChance[a];
+			}
+		}
+		if(randomNum <= enemyTeam[num].attackChance[i]+baseChance && randomNum > baseChance){
+			return enemyTeam[num].attackFunc[i]();
+		}
+	}
+	alert("ERROR: No attack was selected!");
 }
 
+// ENEMY ATTACK FUNCTIONS
+function enemySqueal(){
+	console.log("Squeal");
+	enemyDmg = 2
+	player.hpCurr -= enemyDmg-Math.ceil(enemyDmg*(player.magDef/100));
+	displayDmg = enemyDmg-Math.ceil(enemyDmg*(player.magDef/100));
+	enemyCastSpell(nullFunc);
+}
+
+function enemyAxeSwing(){
+	console.log("Axe Swing");
+	enemyDmg = 4
+	player.hpCurr -= enemyDmg-Math.ceil(enemyDmg*(player.wepDef/100));
+	displayDmg = enemyDmg-Math.ceil(enemyDmg*(player.magDef/100));
+	enemyUseWeapon(nullFunc);
+}
+
+function enemyPeck(){
+	console.log("Peck");
+	enemyDmg = 3
+	player.hpCurr -= enemyDmg-Math.ceil(enemyDmg*(player.wepDef/100));
+	displayDmg = enemyDmg-Math.ceil(enemyDmg*(player.magDef/100));
+	enemyUseWeapon(nullFunc);
+}
+
+function enemySwordSwing(){
+	console.log("Sword Swing");
+	enemyDmg = 5
+	player.hpCurr -= enemyDmg-Math.ceil(enemyDmg*(player.wepDef/100));
+	displayDmg = enemyDmg-Math.ceil(enemyDmg*(player.magDef/100));
+	enemyUseWeapon(nullFunc);
+}
+
+function enemyDefend(){
+	// logic so Viking won't defend at maximum defense
+	if(enemyTeam[actEnemy].wepDef >= 100){
+		return enemyTurn(currentTurn);
+	}
+	console.log("Defend");
+	enemyTeam[actEnemy].wepDef += 15;
+	if(enemyTeam[actEnemy].wepDef > 100){
+		enemyTeam[actEnemy].wepDef = 100;
+	}
+	enemyBuffSelf(nullFunc);
+}
+
+
+// ENEMY ATTACK ANIMATIONS
+function enemyUseWeapon(weaponFX){
+	clearInterval(animateEnemy[actEnemy]);
+	enemyTeam[actEnemy].frame = 0;
+	enemyTeam[actEnemy].dx = 205+actEnemy*130;
+	var ctx = $(".enemy-ani-canvas")[actEnemy].getContext("2d");
+
+	animateEnemy[actEnemy] = setInterval(function(){
+		// walk up
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(enemyTeam[actEnemy].image, enemyTeam[actEnemy].frame*200, 200, 200, 200, enemyTeam[actEnemy].dx, 150, 200, 200);
+		enemyTeam[actEnemy].frame++
+		if(enemyTeam[actEnemy].frame > 3){
+			enemyTeam[actEnemy].frame = 0;
+		}
+		enemyTeam[actEnemy].dx -= 25;
+		if(enemyTeam[actEnemy].dx <= 75){
+			clearInterval(animateEnemy[actEnemy]);
+			var step = 0;
+			enemyTeam[actEnemy].frame = 0;
+			animateEnemy[actEnemy] = setInterval(function(){
+				// swing weapon and withdraw
+				ctx.clearRect(0, 0, 800, 600);
+				ctx.drawImage(enemyTeam[actEnemy].image, enemyTeam[actEnemy].frame*200, 400, 200, 200, enemyTeam[actEnemy].dx, 150, 200, 200);
+				if(step < 3){
+					enemyTeam[actEnemy].frame++;
+				}
+				else if(step === 3){
+					weaponFX();
+					playerFlinch();
+				}
+				else if(step === 4){
+					enemyTeam[actEnemy].frame = 0;
+				}
+				else if(step === 8){
+					clearInterval(animateEnemy[actEnemy]);
+					enemyTeam[actEnemy].frame = 0;
+					animateEnemy[actEnemy] = setInterval(function(){
+						// walk away
+						ctx.clearRect(0, 0, 800, 600);
+						ctx.drawImage(enemyTeam[actEnemy].image, enemyTeam[actEnemy].frame*200, 200, 200, 200, enemyTeam[actEnemy].dx, 150, 200, 200);
+						enemyTeam[actEnemy].frame++;
+						if(enemyTeam[actEnemy].frame > 3){
+							enemyTeam[actEnemy].frame = 0;
+						}
+						if(enemyTeam[actEnemy].dx >= 205+actEnemy*130){
+							enemyTeam[actEnemy].dx = 205+actEnemy*130;
+							clearInterval(animateEnemy[actEnemy]);
+							drawIdleEnemy(actEnemy);
+							currentTurn++;
+							beginTurnRotation();
+						}
+						enemyTeam[actEnemy].dx += 25;
+					}, 80);
+				}
+				step++;
+			}, 100);
+		}
+	}, 120);
+}
+
+function enemyCastSpell(spellFX){
+	clearInterval(animateEnemy[actEnemy]);
+	enemyTeam[actEnemy].frame = 0;
+	var ctx = $(".enemy-ani-canvas")[actEnemy].getContext("2d");
+	animateEnemy[actEnemy] = setInterval(function(){
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(enemyTeam[actEnemy].image, enemyTeam[actEnemy].frame*200, 600, 200, 200, 205+actEnemy*130, 150, 200, 200)
+		if(enemyTeam[actEnemy].frame === 2){
+			spellFX();
+		}
+		else if(enemyTeam[actEnemy].frame > 2){
+			playerFlinch();
+			drawIdleEnemy(actEnemy);
+			currentTurn++;
+			beginTurnRotation();
+		}
+		enemyTeam[actEnemy].frame++;
+	}, 200);
+}
+
+function enemyBuffSelf(buffFX){
+	clearInterval(animateEnemy[actEnemy]);
+	enemyTeam[actEnemy].frame = 0;
+	var ctx = $(".enemy-ani-canvas")[actEnemy].getContext("2d");
+	animateEnemy[actEnemy] = setInterval(function(){
+		ctx.clearRect(0, 0, 800, 600);
+		ctx.drawImage(enemyTeam[actEnemy].image, enemyTeam[actEnemy].frame*200, 800, 200, 200, 205+actEnemy*130, 150, 200, 200)
+		enemyTeam[actEnemy].frame++;
+		if(enemyTeam[actEnemy].frame === 3){
+			buffFX();
+		}
+		else if(enemyTeam[actEnemy].frame > 3){
+			drawIdleEnemy(actEnemy);
+			currentTurn++;
+			beginTurnRotation();
+		}
+	}, 150);
+}
+
+function playerFlinch(){
+	flinchOK = false;
+	clearInterval(animatePlayer);
+	var ctx = $("#player-ani-canvas")[0].getContext("2d");
+	ctx.clearRect(0, 0, 800, 600);
+	ctx.drawImage(playerImg, 1000, 200, 200, 200, player.dx, 150, 200, 200);
+	if(player.hpCurr < 0){
+		player.hpCurr = 0;
+	}
+	refreshHeroDisplay();
+	floatPlayerDamage();
+	setTimeout(function(){
+		if(player.hpCurr <= 0){
+			player.frame = 10;
+			animatePlayer = setInterval(function(){
+				player.frame--;
+				ctx.globalAlpha = player.frame/10;
+				ctx.clearRect(0, 0, 800, 600);
+				ctx.drawImage(playerImg, 1000, 200, 200, 200, player.dx, 150, 200, 200);
+				if(player.frame <= 0){
+					clearInterval(animatePlayer);
+					alert("GAME OVER!");
+				}
+			}, 60);
+		}
+		else{
+			drawIdlePlayer();
+		flinchOK = true;
+		}
+	}, 30);
+}
+
+
+// END ENCOUNTER
 function endEncounter(){
 	openWorldMap()
-}
-
-
-
-
-
-
-
-
-
-
-function openBattlefield(){
-	$("#world-map").addClass("hidden");
-	$("#battlefield").removeClass("hidden");
-	beginTurnRotation();
 }
 
 function openWorldMap(){
@@ -228,8 +844,8 @@ function openWorldMap(){
 ////////////////////////////////////////////////////////
 var map = [
 	[ // room 0
-		[0, 0, 1, 0, 0, 0, 1, 0, 0, "D01A", 1, 0, 0, 0, 0, 1],
-		[0, "E00", 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+		[0, "E00", 1, 0, 0, 0, 1, 0, 0, "D01A", 1, 0, 0, 0, 0, 1],
+		[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
 		[1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
 		[1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
 		[0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
@@ -283,20 +899,21 @@ function drawMap(){
 	}
 }
 
-function drawPlayer(){
+function drawPlayerIcon(){
 	var ctx = $("#player-canvas")[0].getContext("2d");
 	ctx.clearRect(0, 0, 800, 600);
 	ctx.fillStyle = "red";
 	ctx.drawImage(playerIcon, player.step*50, player.direction*50, 50, 50, player.x*unitSize(), player.y*unitSize(), unitSize(), unitSize());
 }
 
-function hidePlayer(){
+function hidePlayerIcon(){
 	var ctx = $("#player-canvas")[0].getContext("2d");
 	ctx.clearRect(0, 0, 800, 600);
 }
 
-function drawTransition(addFunc){
+function drawTransition(midFunc, endFunc){
 	movementOn = false;
+	$("#transition-canvas").removeClass("hidden");
 	var ctx = $("#transition-canvas")[0].getContext("2d");
 	ctx.fillStyle = "cornflowerblue";
 	transitionCount = 0;
@@ -310,7 +927,7 @@ function drawTransition(addFunc){
 		if(transitionCount === 23){
 			clearInterval(transition)
 			transitionCount = 10;
-			addFunc()
+			midFunc();
 			transition = setInterval(function(){
 				transitionCount -= 1;
 				ctx.clearRect(0, 0, 800, 600);
@@ -320,7 +937,11 @@ function drawTransition(addFunc){
 					clearInterval(transition);
 					ctx.globalAlpha = 1;
 					transitionCount = 0;
+					$("#transition-canvas").addClass("hidden");
 					movementOn = true;
+					setTimeout(function(){
+						endFunc();
+					}, 50)
 				}
 			}, 50);
 		}
@@ -351,7 +972,7 @@ function movePlayer(xAxis, yAxis){
 				else{
 					player.step = 0;
 				}
-				drawPlayer()
+				drawPlayerIcon()
 			}, 20);
 		}
 	}
@@ -385,6 +1006,7 @@ function openDoor(newRoom, door){
 						var newRow = row;
 						var newCol = col;
 						// begin transition animation
+						$("#transition-canvas").removeClass("hidden");
 						var ctx = $("#transition-canvas")[0].getContext("2d");
 						ctx.fillStyle = "gray";
 						transitionCount = 0;
@@ -398,7 +1020,7 @@ function openDoor(newRoom, door){
 								drawMap();
 								player.x = newCol;
 								player.y = newRow;
-								drawPlayer();
+								drawPlayerIcon();
 								transition = setInterval(function(){
 									ctx.clearRect(0, 0, transitionCount*30, 600);
 									transitionCount += 1;
@@ -459,6 +1081,8 @@ function checkKeyPress(){
 ////////////////////////////////////////////////////////
 // 06 - Load screen and initialize
 ////////////////////////////////////////////////////////
+function nullFunc(){}
+
 function drawLoadScreen(){
 	var ctx = $("#load-canvas")[0].getContext("2d");
 	ctx.fillStyle = "burlyWood";
@@ -478,9 +1102,18 @@ function drawLoadScreen(){
 	});
 }
 
+function drawBackground(){
+	var ctx = $("#background-canvas")[0].getContext("2d");
+	for(i = 0; i < 6; i++){
+		ctx.drawImage(hallwayPanel, 0, 0, 150, 400, i*150, 0, 150, 400);
+	}
+	ctx.drawImage(lowerPanel, 0, 0, 3333, 833, 0, 400, 800, 200)
+}
+
 function loadGame(){
 	drawMap();
-	drawPlayer();
+	drawPlayerIcon();
+	drawBackground();
 	checkKeyPress();
 }
 
